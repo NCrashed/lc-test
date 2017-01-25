@@ -1,0 +1,42 @@
+homonize :: Vec 3 Float -> Vec 4 Float
+homonize v = V4 v%x v%y v%z 1
+
+displayQuad (texture :: Texture)
+  = imageFrame (emptyDepthImage 1, emptyColorImage (V4 0 0 0 1.0))
+  `overlay`
+     prims
+  & mapPrimitives (\(v, uv) -> (homonize v, uv))
+  & rasterizePrimitives (TriangleCtx CullFront PolygonFill NoOffset LastVertex) ((Smooth))
+  & mapFragments (\((uv)) -> ((texture2D (Sampler PointFilter MirroredRepeat texture) uv)) )
+  & accumulateWith (DepthOp Less True, ColorOp NoBlending (V4 True True True True))
+  where
+    prims = fetchArrays (ps, uvs) :: PrimitiveStream Triangle (Vec 3 Float, Vec 2 Float)
+    ps = [
+        V3 1 1 0, V3 1 (-1) 0, V3 (-1) (-1) 0
+      , V3 1 1 0, V3 (-1) (-1) 0, V3 (-1) 1 0
+      ]
+    uvs = [
+        V2 1 1, V2 0 1, V2 0 0
+      , V2 1 1, V2 0 0, V2 1 0
+      ]
+
+makeFrame (projmat :: Mat 4 4 Float)
+          (texture :: Texture)
+          (prims :: PrimitiveStream Triangle (Vec 3 Float, Vec 2 Float))
+
+    = imageFrame (emptyDepthImage 1, emptyColorImage (V4 0 0 0.4 1))
+  `overlay`
+      prims
+    & mapPrimitives (\(p, uv) -> (projmat *. V4 p%x p%y p%z 1, uv))
+    & rasterizePrimitives (TriangleCtx CullNone PolygonFill NoOffset LastVertex) ((Smooth))
+    & mapFragments (\((uv)) -> ((texture2D (Sampler PointFilter MirroredRepeat texture) uv)) )
+    & accumulateWith (DepthOp Less True, ColorOp NoBlending (V4 True True True True))
+
+main = let
+  cubeFrame = makeFrame (Uniform "projmat")
+    (Texture2DSlot "diffuseTexture")
+    (fetch "objects" (Attribute "position", Attribute "uv"))
+  in renderFrame $ displayQuad $ Texture2D windowSize . PrjImageColor $ cubeFrame -- that doesn't
+  --in renderFrame cubeFrame -- that works
+  where
+    windowSize = V2 640 640
