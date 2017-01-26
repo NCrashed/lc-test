@@ -43,7 +43,7 @@ packages:
   extra-dep: true
 - location:
     git: https://github.com/lambdacube3d/lambdacube-gl.git
-    commit: 11749fd3c9d5e56b7e696d89908226fbe827aa10
+    commit: 0f01492b377ed52e7967c75e834ee7ad6d487163
   extra-dep: true
 - location:
     git: https://github.com/lambdacube3d/lambdacube-ir.git
